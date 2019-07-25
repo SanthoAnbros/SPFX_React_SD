@@ -31,6 +31,7 @@ export default class NewRequest extends React.Component<INewRequestProps, UserDe
   constructor(props:INewRequestProps,state:UserDetail){
     super(props, state)
     this.state = {
+      Title:'test',
       EmployeeName:'',
       Manager : '',
       cellPhone: '',
@@ -49,11 +50,13 @@ export default class NewRequest extends React.Component<INewRequestProps, UserDe
 
   additem(){
     debugger;
-    let JsonItems = JSON.stringify(this.state);
+    let JsonItems : any = JSON.stringify(this.state);
     console.log(JsonItems);
     try{
         // add an item to the list
-        pnp.sp.web.lists.getByTitle("SD").items.add({JsonItems}).then((iar: ItemAddResult) => {
+        pnp.sp.web.lists.getByTitle("SD").items.add(
+          JSON.parse(JsonItems)
+        ).then((iar: ItemAddResult) => {
           console.log(iar);
         }).catch((error)=>{
           console.log(error);
@@ -65,7 +68,23 @@ export default class NewRequest extends React.Component<INewRequestProps, UserDe
     
   }
 
+  getValueByRequestID(RequestID){
+    sp.web.lists.getByTitle('SD').items.getById(RequestID).get()
+    .then((result)=>{
+      //this.state = result;
+      let vvv = result.map((res):UserDetail=>{
+        return res;
+      })
+      this.setState(vvv);
+    })
+  }
+
   componentWillMount(){
+    debugger;
+    let RequestID = this.getQueryStringValue();
+    if(RequestID){
+      this.getValueByRequestID(RequestID)
+    }
     this.GetCurrentUser();
     this.getPriorityValue();
     this.getCategories();
@@ -85,8 +104,8 @@ export default class NewRequest extends React.Component<INewRequestProps, UserDe
   private getQueryStringValue(){
     //debugger;
     let queryParms = new UrlQueryParameterCollection(window.location.href);
-    let myParm = queryParms.getValue("Name");
-    console.log(myParm);
+    let myParm = queryParms.getValue("RequestID");
+    return myParm;
   }
   
   private getCategories(){
@@ -165,7 +184,7 @@ export default class NewRequest extends React.Component<INewRequestProps, UserDe
             }).then(r =>{
               this.setState({
                 FileLink : "/sites/SanthoAnbros/SDDocs/Forms/AllItems.aspx?id=/sites/SanthoAnbros/SDDocs/"+ file.name+"&parent=/sites/SanthoAnbros/SDDocs",  
-                FileID :  listItemAllFields.ID
+                FileID : String(listItemAllFields.ID) 
               })
               console.log(r);
                         console.log(file.name + " properties updated successfully!");
@@ -198,13 +217,12 @@ fileupload(e){
 
   public render(): React.ReactElement<INewRequestProps> {
 
-    
-
     //SPComponentLoader.loadCss('node_modules\bootstrap\dist\css\bootstrap.min.css')
     SPComponentLoader.loadCss('https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css');
     return (
       <div className={ styles.newRequest }>
         <div className="container">
+        
         <div className="form-row">
               <div className="form-group col-md-6">
                 <label >Types Of Request</label>
@@ -242,38 +260,38 @@ fileupload(e){
               </div>
               <div className="form-group col-md-6">
                 <label >Sub Category</label>
-                <SubCategories handleEventListener={this.handleEventListener} Category={this.state.Category} value={this.state.SubCategory} SubCategoriesArr = { CategoriesArr }/>
+                <SubCategories handleEventListener={this.handleEventListener} Category={this.state.Category}  SubCategoriesArr = { CategoriesArr } value={this.state.SubCategory}/>
               </div>
           </div>
           <div className="form-row">
               <div className="form-group col-md-12">
                 <label >Subject</label>
-                <input id="Subject" onChange={ this.handleEventListener } className="form-control" type="text"></input>
+                <input id="Subject" value={this.state.Subject} onChange={ this.handleEventListener } className="form-control" type="text"></input>
               </div>
               <div className="form-group col-md-12">
                 <label >Description</label>
-                <textarea id="Description" onChange={ this.handleEventListener } className="form-control" ></textarea>
+                <textarea value={this.state.Description} id="Description" onChange={ this.handleEventListener } className="form-control" ></textarea>
               </div>
           </div>
           <div className="form-row">
               <div className="form-group col-md-6">
                 <label >Alternate Contact</label>
-                <input id="AlternateContact" onChange={ this.handleEventListener } className="form-control" type="text"></input>
+                <input id="AlternateContact" value={this.state.AlternateContact} onChange={ this.handleEventListener } className="form-control" type="text"></input>
               </div>
-              <div className="form-group col-md-6">
-                <label >File Upload</label>
+              <div className="form-group col-md-6 ">
+                
                 { !this.state.FileLink ? 
                 (
-                  <input onChange={(e)=>this.UploadFiles(e)} className="form-control" type="file"></input>
+                  <div className="files">
+                    <label >File Upload</label>
+                    <input onChange={(e)=>this.UploadFiles(e)} className="form-control " type="file"></input>
+                  </div>
                   )
                 :
-                (
-                  <div>
-                        <a href={this.state.FileLink}>Uploaded File</a>
-                        <span>Delete: </span>
-                        <a onClick={()=>this.DeletedUploadedFile()}>Delete</a> 
-                  </div>
-                )
+                (<div>
+                          <a className="btn btn-primary" href={this.state.FileLink}>Download uploaded file</a>
+                          <button onClick={()=>this.DeletedUploadedFile()} className="btn btn-primary">Delete</button> 
+                  </div>)
                 }
                 
               </div>

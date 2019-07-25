@@ -1,4 +1,5 @@
 export interface UserDetail{
+  Title?:string;
   EmployeeName ?: string;
   Manager ?: string;
   cellPhone ?: string;

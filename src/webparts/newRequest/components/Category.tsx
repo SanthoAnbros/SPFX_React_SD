@@ -5,12 +5,9 @@ let Cats :JSX.Element[];
 const Categories = (props) =>{
     if(!Cats || Cats.length==0){
         Cats = props.CategoriesArr.map((category): JSX.Element =>{
-            if(Cats.indexOf(<option value={category.Title}>{category.Title}</option>)==-1){
-    
                 return(
                     <option value={category.Title}>{category.Title}</option>
                 )
-            }
         });
     }
 
