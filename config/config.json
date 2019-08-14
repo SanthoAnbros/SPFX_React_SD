@@ -9,10 +9,28 @@
           "manifest": "./src/webparts/newRequest/NewRequestWebPart.manifest.json"
         }
       ]
+    },
+    "hyper-links-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/hyperLinks/HyperLinksWebPart.js",
+          "manifest": "./src/webparts/hyperLinks/HyperLinksWebPart.manifest.json"
+        }
+      ]
+    },
+    "script-editor-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/scriptEditor/ScriptEditorWebPart.js",
+          "manifest": "./src/webparts/scriptEditor/ScriptEditorWebPart.manifest.json"
+        }
+      ]
     }
   },
   "externals": {},
   "localizedResources": {
-    "NewRequestWebPartStrings": "lib/webparts/newRequest/loc/{locale}.js"
+    "NewRequestWebPartStrings": "lib/webparts/newRequest/loc/{locale}.js",
+    "HyperLinksWebPartStrings": "lib/webparts/hyperLinks/loc/{locale}.js",
+    "ScriptEditorWebPartStrings": "lib/webparts/scriptEditor/loc/{locale}.js"
   }
 }

@@ -3,7 +3,7 @@
   "solution": {
     "name": "qsd-client-side-solution",
     "id": "46d98f93-f3c7-46c4-86bd-1b201877ab14",
-    "version": "1.0.0.0",
+    "version": "1.0.0.6",
     "includeClientSideAssets": true
   },
   "paths": {

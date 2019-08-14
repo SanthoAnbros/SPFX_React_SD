@@ -1,6 +1,6 @@
 import * as React from 'react';
 import styles from './NewRequest.module.scss';
-import { INewRequestProps, UserDetail } from './INewRequestProps';
+import { INewRequestProps, UserDetail , INewRequestState} from './INewRequestProps';
 import { escape } from '@microsoft/sp-lodash-subset';
 import { SPComponentLoader } from '@microsoft/sp-loader';
 import { UrlQueryParameterCollection } from '@microsoft/sp-core-library';
@@ -9,7 +9,7 @@ import Categories from './Category';
 import SubCategories from './SubCategory';
 import TypesOfRequest from './TypeOfRequest';
 
-import { sp } from "@pnp/sp";  
+import { sp, Web, PermissionKind } from "@pnp/sp";  
 import { CurrentUser } from '@pnp/sp/src/siteusers';  
 import { default as pnp, ItemAddResult } from "sp-pnp-js";
 
@@ -19,32 +19,31 @@ require('bootstrap');
 
 
 
-let Priorities=[];
-let CategoriesArr=[];
-let SubCategoriesArr=[];
-let TypesOfRequestArr=[];
 
-export default class NewRequest extends React.Component<INewRequestProps, UserDetail> {
-  
-  //public onInit(){}
+export default class NewRequest extends React.Component<INewRequestProps, INewRequestState> {
 
-  constructor(props:INewRequestProps,state:UserDetail){
+  constructor(props:INewRequestProps,state:INewRequestState){
     super(props, state)
     this.state = {
-      Title:'test',
-      EmployeeName:'',
-      Manager : '',
-      cellPhone: '',
-      Location:'',
-      Priority:'-Select-',
-      Category:'-Select-',
-      SubCategory:'-Select-',
-      TypesOfRequest:'',
-      Subject:'',
-      Description:'',
-      AlternateContact:'',
-      FileLink:'',
-      FileID:''
+      SD_Details : {
+                      Title:'test',
+                      EmployeeName:'',
+                      Manager : '',
+                      cellPhone: '',
+                      Location:'',
+                      Priority:'-Select-',
+                      Category:'-Select-',
+                      SubCategory:'-Select-',
+                      TypesOfRequest:'',
+                      Subject:'',
+                      Description:'',
+                      AlternateContact:'',
+                      FileLink:'',
+                      FileID:''
+                      },
+      TypesOfRequests:[],
+      Priorities:[],
+      Categories:[]
     }
   }
 
@@ -71,16 +70,19 @@ export default class NewRequest extends React.Component<INewRequestProps, UserDe
   getValueByRequestID(RequestID){
     sp.web.lists.getByTitle('SD').items.getById(RequestID).get()
     .then((result)=>{
-      //this.state = result;
-      let vvv = result.map((res):UserDetail=>{
-        return res;
-      })
-      this.setState(vvv);
+
+      let val = new UserDetail(result);
+      console.log(val);
+      
+      this.setState({
+        SD_Details : val
+      });
     })
   }
 
   componentWillMount(){
     debugger;
+    this.getCurrentUserGroup();
     let RequestID = this.getQueryStringValue();
     if(RequestID){
       this.getValueByRequestID(RequestID)
@@ -92,12 +94,46 @@ export default class NewRequest extends React.Component<INewRequestProps, UserDe
   }
 
   componentDidMount(){
-    console.log('Comp did Mount');
+    // console.log('Comp did Mount');
+
+    // const web = new Web("https://qonline.sharepoint.com/sites/santhoanbros")
+
+    // web.getCurrentUserEffectivePermissions().then(perms => { //WINDOWS POPUP HERE//
+
+    //      if (web.hasPermissions(perms, PermissionKind.AddListItems)
+    //          && web.hasPermissions(perms, PermissionKind.EditListItems)) {
+    //          console.log('Access');
+    //      }
+    //      else {
+    //          console.log('NOT Access');
+    //      }
+    // })
+    // .catch(err => console.log(err));
+
+    // const web = new Web(webUrl);
+    // return new Promise((resolve, reject) => {
+    // web.lists.getByTitle(listTitle).getCurrentUserEffectivePermissions()
+    // .then(res => {
+    // if(web.hasPermissions(res, PermissionKind.AddListItems)){
+    // resolve(true);
+    // }
+    // else{
+    // resolve(false);
+    // }
+    // })
+    // .catch(e =>{
+    // console.log(e);
+    // reject(e)
+    // })
+    // })
+
   }
 
   private getPriorityValue(){
     sp.web.lists.getByTitle('Priority').items.get().then((items:any[])=>{
-      Priorities = items;
+      this.setState({
+        Priorities:items
+      })
     });
   }
 
@@ -110,14 +146,19 @@ export default class NewRequest extends React.Component<INewRequestProps, UserDe
   
   private getCategories(){
     sp.web.lists.getByTitle('Category').items.get().then((items: any[])=>{
-        CategoriesArr = items;
-        console.log(CategoriesArr);
+        this.setState({
+          Categories: items
+        })
     })
   }
 
   private TypesOfRequestArr(){
     sp.web.lists.getByTitle('RequestTypes').items.get().then((items: any[])=>{
-      TypesOfRequestArr = items;
+      //TypesOfRequestArr = items;
+      this.setState({
+        TypesOfRequests: items
+      })
+
     })
   }
 
@@ -134,10 +175,12 @@ export default class NewRequest extends React.Component<INewRequestProps, UserDe
       .then(()=>{
         //set value to state
         this.setState({
-          EmployeeName: Name,
-          Manager : Manager,
-          cellPhone:cell ,
-          Location:Loc 
+          SD_Details:{
+            EmployeeName: Name,
+            Manager : Manager,
+            cellPhone:cell ,
+            Location:Loc 
+          }
         });
       });
 
@@ -147,7 +190,21 @@ export default class NewRequest extends React.Component<INewRequestProps, UserDe
     //debugger;
     console.log(e.target.id);
     this.setState({
-      [e.target.id] : e.target.value 
+      SD_Details: {
+        [e.target.id] : e.target.value
+      } 
+    });
+  }
+
+  getCurrentUserGroup(){
+    sp.web.currentUser.groups.getByName('Technician').get().then((group)=>{
+      debugger;
+      console.log(group);
+    });
+
+    sp.web.currentUser.groups.get().then((group)=>{
+      debugger;
+      console.log(group);
     });
   }
 
@@ -156,10 +213,10 @@ export default class NewRequest extends React.Component<INewRequestProps, UserDe
   }
 
   DeletedUploadedFile(){
-    pnp.sp.web.lists.getByTitle("SDDocs").items.getById(parseInt(this.state.FileID)).delete().then(_ => {
+    pnp.sp.web.lists.getByTitle("SDDocs").items.getById(parseInt(this.state.SD_Details.FileID)).delete().then(_ => {
       this.setState({
-        FileLink : '',  
-        FileID :  '',
+        SD_Details :{ FileLink : '',  
+                      FileID :  ''}
       })
     });
 
@@ -183,8 +240,10 @@ export default class NewRequest extends React.Component<INewRequestProps, UserDe
                         Title: file.name            
             }).then(r =>{
               this.setState({
-                FileLink : "/sites/SanthoAnbros/SDDocs/Forms/AllItems.aspx?id=/sites/SanthoAnbros/SDDocs/"+ file.name+"&parent=/sites/SanthoAnbros/SDDocs",  
-                FileID : String(listItemAllFields.ID) 
+                SD_Details:{
+                  FileLink : "/sites/SanthoAnbros/SDDocs/Forms/AllItems.aspx?id=/sites/SanthoAnbros/SDDocs/"+ file.name+"&parent=/sites/SanthoAnbros/SDDocs",  
+                  FileID : String(listItemAllFields.ID) 
+                }
               })
               console.log(r);
                         console.log(file.name + " properties updated successfully!");
@@ -226,61 +285,61 @@ fileupload(e){
         <div className="form-row">
               <div className="form-group col-md-6">
                 <label >Types Of Request</label>
-                <TypesOfRequest handleEventListener={this.handleEventListener}  value={this.state.TypesOfRequest} TypesOfRequest={ TypesOfRequestArr }/>
+                <TypesOfRequest handleEventListener={this.handleEventListener}  value={this.state.SD_Details.TypesOfRequest} TypesOfRequest={ this.state.TypesOfRequests }/>
               </div>
               <div className="form-group col-md-6">
                 <label >Priority</label>
-                <Priority handleEventListener={this.handleEventListener} selected={this.state.Priority} Priorities = { Priorities }/>
+                <Priority handleEventListener={this.handleEventListener} selected={this.state.SD_Details.Priority} Priorities = { this.state.Priorities }/>
               </div>
           </div>
           <div className="form-row">
               <div className="form-group col-md-6">
                 <label >Employee Name</label>
-                <input type="text" className="form-control" disabled value={this.state.EmployeeName} onChange={this.handleEventListener} id="EmployeeName" />
+                <input type="text" className="form-control" disabled value={this.state.SD_Details.EmployeeName} onChange={this.handleEventListener} id="EmployeeName" />
               </div>
               <div className="form-group col-md-6">
                 <label >Manager</label>
-                <input type="text" className="form-control" disabled value={this.state.Manager} onChange={this.handleEventListener} id="Manager" />
+                <input type="text" className="form-control" disabled value={this.state.SD_Details.Manager} onChange={this.handleEventListener} id="Manager" />
               </div>
           </div>
           <div className="form-row">
               <div className="form-group col-md-6">
                 <label >Location</label>
-                <input type="text" className="form-control" disabled value={this.state.Location} onChange={this.handleEventListener} id="Location"/>
+                <input type="text" className="form-control" disabled value={this.state.SD_Details.Location} onChange={this.handleEventListener} id="Location"/>
               </div>
               <div className="form-group col-md-6">
                 <label >Contact</label>
-                <input type="text" className="form-control" disabled value={this.state.cellPhone} onChange={this.handleEventListener} id="cellPhone" />
+                <input type="text" className="form-control" disabled value={this.state.SD_Details.cellPhone} onChange={this.handleEventListener} id="cellPhone" />
               </div>
           </div>
           <div className="form-row">
               <div className="form-group col-md-6">
                 <label >Category</label>
-                <Categories handleEventListener={this.handleEventListener} value={this.state.Category} CategoriesArr = { CategoriesArr }/>
+                <Categories handleEventListener={this.handleEventListener} value={this.state.SD_Details.Category} CategoriesArr = { this.state.Categories }/>
               </div>
               <div className="form-group col-md-6">
                 <label >Sub Category</label>
-                <SubCategories handleEventListener={this.handleEventListener} Category={this.state.Category}  SubCategoriesArr = { CategoriesArr } value={this.state.SubCategory}/>
+                <SubCategories handleEventListener={this.handleEventListener} Category={this.state.SD_Details.Category}  SubCategoriesArr = { this.state.Categories } value = {this.state.SD_Details.SubCategory}/>
               </div>
           </div>
           <div className="form-row">
               <div className="form-group col-md-12">
                 <label >Subject</label>
-                <input id="Subject" value={this.state.Subject} onChange={ this.handleEventListener } className="form-control" type="text"></input>
+                <input id="Subject" value={this.state.SD_Details.Subject} onChange={ this.handleEventListener } className="form-control" type="text"></input>
               </div>
               <div className="form-group col-md-12">
                 <label >Description</label>
-                <textarea value={this.state.Description} id="Description" onChange={ this.handleEventListener } className="form-control" ></textarea>
+                <textarea value={this.state.SD_Details.Description} id="Description" onChange={ this.handleEventListener } className="form-control" ></textarea>
               </div>
           </div>
           <div className="form-row">
               <div className="form-group col-md-6">
                 <label >Alternate Contact</label>
-                <input id="AlternateContact" value={this.state.AlternateContact} onChange={ this.handleEventListener } className="form-control" type="text"></input>
+                <input id="AlternateContact" value={this.state.SD_Details.AlternateContact} onChange={ this.handleEventListener } className="form-control" type="text"></input>
               </div>
               <div className="form-group col-md-6 ">
                 
-                { !this.state.FileLink ? 
+                { !this.state.SD_Details.FileLink ? 
                 (
                   <div className="files">
                     <label >File Upload</label>
@@ -289,7 +348,7 @@ fileupload(e){
                   )
                 :
                 (<div>
-                          <a className="btn btn-primary" href={this.state.FileLink}>Download uploaded file</a>
+                          <a className="btn btn-primary" href={this.state.SD_Details.FileLink}>Download uploaded file</a>
                           <button onClick={()=>this.DeletedUploadedFile()} className="btn btn-primary">Delete</button> 
                   </div>)
                 }
